@@ -1,0 +1,42 @@
+[user]
+	name = Brian Nicholson
+	email = thebnich@gmail.com
+[push]
+	default = simple
+[filter "media"]
+	clean = git media clean %f
+	smudge = git media smudge %f
+	required = true
+[rerere]
+	enabled = true
+[alias]
+    # Logic:
+    #
+    # The 'git stash save' fails if the tree is clean (instead of
+    # creating an empty stash :P). So, we only 'stash' and 'pop' if
+    # the tree is dirty.
+    #
+    # The 'git rebase --whitespace=fix HEAD~' throws away the commit
+    # if it's empty, and adding '--keep-empty' prevents the whitespace
+    # from being fixed. So, we first check that the index is dirty.
+    #
+    # Also:
+    # - '(! git diff-index --quiet --cached HEAD)' is true (zero) if
+    #   the index is dirty
+    # - '(! git diff-files --quiet .)' is true if the tree is dirty
+    #
+    # The 'rebase --whitespace=fix' trick is from here:
+    # http://stackoverflow.com/a/19156679/470844
+    fix-whitespace = !"\
+      if (! git diff-files --quiet .) && \
+         (! git diff-index --quiet --cached HEAD) ; then \
+        git commit -m FIXWS_SAVE_INDEX && \
+        git stash save FIXWS_SAVE_TREE && \
+        git rebase --whitespace=fix HEAD~ && \
+        git stash pop && \
+        git reset --soft HEAD~ ; \
+      elif (! git diff-index --quiet --cached HEAD) ; then \
+        git commit -m FIXWS_SAVE_INDEX && \
+        git rebase --whitespace=fix HEAD~ && \
+        git reset --soft HEAD~ ; \
+      fi"
